@@ -1,0 +1,23 @@
+{
+    "plugins": [
+        {
+            "name": "Digi snippet",
+            "className": "DigiSnippet",
+            "docs": "features/digi-snippet.html",
+            "description": "Adds text to the editor.",
+            "path": "src/digisnippet.ts",
+            "uiComponents": [
+                {
+                    "name": "digiSnippetButton",
+                    "type": "Button",
+                    "iconPath": "theme/icons/ckeditor.svg"
+                }
+            ],
+            "htmlOutput": [
+				{
+					"elements": "p"
+				}
+			]
+        }
+    ]
+}
