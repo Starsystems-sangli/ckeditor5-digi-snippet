@@ -72,7 +72,6 @@
     "start": "ckeditor5-package-tools start",
     "stylelint": "stylelint --quiet --allow-empty-input 'theme/**/*.css'",
     "test": "ckeditor5-package-tools test",
-    "prepare": "yarn run dll:build",
     "prepublishOnly": "yarn run ts:build && ckeditor5-package-tools export-package-as-javascript",
     "postpublish": "yarn run ts:clear && ckeditor5-package-tools export-package-as-typescript",
     "translations:collect": "ckeditor5-package-tools translations:collect",
