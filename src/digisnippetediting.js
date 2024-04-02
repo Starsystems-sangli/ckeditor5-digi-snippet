@@ -91,7 +91,7 @@ export default class DigiSnippetEditing extends Plugin {
         conversion.for("dataDowncast").elementToElement({
             model: 'snippetBlock',
             view: (modelElement, writer) => {
-                return writer.writer.createContainerElement('div', { class: 'snippet-block disabled' });
+                return writer.writer.createContainerElement('div', { class: 'snippet-block' });
             }
         });
         conversion.for('editingDowncast').elementToElement({
@@ -101,7 +101,7 @@ export default class DigiSnippetEditing extends Plugin {
                 let domContentWrapper;
                 let state;
                 let props;
-                if (this.editor.config.get('snippet.isReadOnly')) {
+                if (this.editor.config.get('digisnippet.isReadOnly')) {
                     const editor = this.editor;
                     // Note: You use a more specialized createEditableElement() method here.
                     const tryContentWrapper = viewWriter.createRawElement('div', { class: 'snippet-try-text' }, function (domElement) {
