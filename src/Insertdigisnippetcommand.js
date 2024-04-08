@@ -19,6 +19,6 @@ function createSnippetBox(writer) {
     writer.append(snippetBlock, snippetBox);
     // There must be at least one paragraph for the description to be editable.
     // See https://github.com/ckeditor/ckeditor5/issues/1464.
-    writer.appendElement('paragraph', snippetBlock);
+    // writer.appendElement('paragraph', snippetBlock);
     return snippetBox;
 }
