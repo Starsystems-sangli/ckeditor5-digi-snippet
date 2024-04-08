@@ -1,10 +1,13 @@
 // CKEditor 
 import { Plugin } from '@ckeditor/ckeditor5-core';
 import { Widget, toWidget, toWidgetEditable } from '@ckeditor/ckeditor5-widget';
+import { ShiftEnter } from 'ckeditor5/src/enter';
 import { ButtonView } from 'ckeditor5/src/ui';
 import { createElement } from 'ckeditor5/src/utils';
+import snippet from '../theme/icons/snippet.svg';
 // Snippet Plugin components
 import InsertSnippetCommand from './Insertdigisnippetcommand';
+import { getLeadingWhiteSpaces } from './utils';
 export default class DigiSnippetEditing extends Plugin {
     constructor() {
         super(...arguments);
@@ -14,7 +17,7 @@ export default class DigiSnippetEditing extends Plugin {
         return 'DigiSnippetEditing';
     }
     static get requires() {
-        return [Widget];
+        return [Widget, ShiftEnter];
     }
     init() {
         this._defineSchema();
@@ -24,12 +27,15 @@ export default class DigiSnippetEditing extends Plugin {
     _defineSchema() {
         const schema = this.editor.model.schema;
         schema.register('snippet', {
-            inheritAllFrom: '$blockObject'
+            inheritAllFrom: '$blockObject',
         });
         schema.register('snippetBlock', {
-            isLimit: true,
             allowIn: 'snippet',
-            allowContentOf: '$root'
+            allowWhere: '$block',
+            allowChildren: '$text',
+            isBlock: true,
+            isLimit: true,
+            allowAttributes: ['language', 'class', 'classes', 'title']
         });
         schema.addChildCheck((context, childDefinition) => {
             if (context.endsWith('snippetBlock') && childDefinition.name == 'snippet') {
@@ -58,44 +64,6 @@ export default class DigiSnippetEditing extends Plugin {
         });
         conversion.for('editingDowncast').elementToElement({
             model: 'snippet',
-            view: (modelElement, { writer: viewWriter }) => {
-                const section = viewWriter.createContainerElement('section', { class: 'snippet-box' });
-                return toWidget(section, viewWriter, { label: 'snippet box widget' });
-            }
-        });
-        function renderContent({ editor, domElement, state, props }) {
-            domElement.textContent = '';
-            const domDocument = domElement.ownerDocument;
-            domElement.prepend(createDomButtonsWrapper({ editor, domDocument, state, props }));
-        }
-        function createDomButtonsWrapper({ editor, domDocument, state, props }) {
-            const domButtonsWrapper = createElement(domDocument, 'div', {
-                class: 'raw-html-embed__buttons-wrapper'
-            });
-            const button_hide = editor.config.get('digisnippet.button.hide');
-            if (!button_hide) {
-                const saveButtonView = createUIButton(editor, 'save', props.onOpenClick);
-                domButtonsWrapper.append(saveButtonView.element);
-                widgetButtonViewReferences.add(saveButtonView);
-            }
-            return domButtonsWrapper;
-        }
-        // Code block
-        conversion.for("upcast").elementToElement({
-            model: 'snippetBlock',
-            view: {
-                name: 'div',
-                classes: 'snippet-block'
-            }
-        });
-        conversion.for("dataDowncast").elementToElement({
-            model: 'snippetBlock',
-            view: (modelElement, writer) => {
-                return writer.writer.createContainerElement('div', { class: 'snippet-block' });
-            }
-        });
-        conversion.for('editingDowncast').elementToElement({
-            model: 'snippetBlock',
             view: (modelElement, writer) => {
                 const viewWriter = writer.writer;
                 let domContentWrapper;
@@ -150,22 +118,62 @@ export default class DigiSnippetEditing extends Plugin {
                         viewWriter.setCustomProperty('rawHtmlApi', rawHtmlApi, viewContainer);
                         viewWriter.setCustomProperty('rawHtml', true, viewContainer);
                     });
-                    const section = viewWriter.createContainerElement('div', { class: 'snippet-try d-flex align-items-center justify-content-between' }, [
+                    const try_section = viewWriter.createContainerElement('div', { class: 'snippet-try d-flex align-items-center justify-content-between' }, [
                         tryContentWrapper, tryBtnContentWrapper
                     ]);
-                    const viewContainer = viewWriter.createContainerElement('div', {
-                        class: 'snippet-block flex-column-reverse',
-                        label: 'snippet box widget',
-                    }, [section]);
+                    const viewContainer = viewWriter.createContainerElement('section', {
+                        class: 'snippet-box flex-column-reverse',
+                        label: 'snippet widget',
+                    }, [try_section]);
                     return viewContainer;
                 }
                 else {
                     // Note: You use a more specialized createEditableElement() method here.
-                    const div = viewWriter.createEditableElement('div', { class: 'snippet-block' });
-                    return toWidgetEditable(div, viewWriter);
+                    const div = viewWriter.createEditableElement('div', { class: 'snippet-box' });
+                    return toWidget(div, viewWriter);
                 }
             }
         });
+        // Code block
+        conversion.for("upcast").elementToElement({
+            model: 'snippetBlock',
+            view: {
+                name: 'div',
+                classes: 'snippet-block'
+            }
+        });
+        conversion.for("dataDowncast").elementToElement({
+            model: 'snippetBlock',
+            view: (modelElement, writer) => {
+                return writer.writer.createContainerElement('div', { class: 'snippet-block' });
+            }
+        });
+        conversion.for('editingDowncast').elementToElement({
+            model: 'snippetBlock',
+            view: (modelElement, writer) => {
+                const viewWriter = writer.writer;
+                // Note: You use a more specialized createEditableElement() method here.
+                const div = viewWriter.createEditableElement('div', { class: 'snippet-block' });
+                return toWidgetEditable(div, viewWriter);
+            }
+        });
+        function renderContent({ editor, domElement, state, props }) {
+            domElement.textContent = '';
+            const domDocument = domElement.ownerDocument;
+            domElement.prepend(createDomButtonsWrapper({ editor, domDocument, state, props }));
+        }
+        function createDomButtonsWrapper({ editor, domDocument, state, props }) {
+            const domButtonsWrapper = createElement(domDocument, 'div', {
+                class: 'raw-html-embed__buttons-wrapper'
+            });
+            const button_hide = editor.config.get('digisnippet.button.hide');
+            if (!button_hide) {
+                const saveButtonView = createUIButton(editor, 'save', props.onOpenClick);
+                domButtonsWrapper.append(saveButtonView.element);
+                widgetButtonViewReferences.add(saveButtonView);
+            }
+            return domButtonsWrapper;
+        }
         function createUIButton(editor, type, onClick) {
             const { t } = editor.locale;
             const buttonView = new ButtonView(editor.locale);
@@ -179,6 +187,7 @@ export default class DigiSnippetEditing extends Plugin {
             buttonView.set({
                 class: `raw-html-embed__${type}-button ${class_name}`,
                 label: t(label),
+                icon: snippet,
                 withText: true,
                 tooltip: true,
                 tooltipPosition: editor.locale.uiLanguageDirection === 'rtl' ? 'e' : 'w'
@@ -188,4 +197,36 @@ export default class DigiSnippetEditing extends Plugin {
             return buttonView;
         }
     }
+    afterInit() {
+        const editor = this.editor;
+        this.listenTo(editor.editing.view.document, 'enter', (evt, data) => {
+            const positionParent = editor.model.document.selection.getLastPosition().parent;
+            if (!positionParent.is('element', 'snippetBlock')) {
+                return;
+            }
+            breakLineOnEnter(editor);
+            data.preventDefault();
+            evt.stop();
+        }, { context: 'div' });
+    }
+}
+function breakLineOnEnter(editor) {
+    const model = editor.model;
+    const modelDoc = model.document;
+    const lastSelectionPosition = modelDoc.selection.getLastPosition();
+    const node = lastSelectionPosition.nodeBefore || lastSelectionPosition.textNode;
+    let leadingWhiteSpaces;
+    // Figure out the indentation (white space chars) at the beginning of the line.
+    if (node && node.is('$text')) {
+        leadingWhiteSpaces = getLeadingWhiteSpaces(node);
+    }
+    // Keeping everything in a change block for a single undo step.
+    editor.model.change((writer) => {
+        editor.execute('shiftEnter');
+        // If the line before being broken in two had some indentation, let's retain it
+        // in the new line.
+        if (leadingWhiteSpaces) {
+            writer.insertText(leadingWhiteSpaces, modelDoc.selection.anchor);
+        }
+    });
 }
