@@ -5,6 +5,7 @@ import { ShiftEnter } from 'ckeditor5/src/enter';
 import { ButtonView } from 'ckeditor5/src/ui';
 import { createElement } from 'ckeditor5/src/utils';
 import snippet from '../theme/icons/snippet.svg';
+import snippetdelete from '../theme/icons/snippetdelete.svg';
 // Snippet Plugin components
 import InsertSnippetCommand from './Insertdigisnippetcommand';
 import { getLeadingWhiteSpaces } from './utils';
@@ -69,9 +70,11 @@ export default class DigiSnippetEditing extends Plugin {
                 let domContentWrapper;
                 let state;
                 let props;
+                const editor = this.editor;
+                const { t } = editor.locale;
                 if (this.editor.config.get('digisnippet.isReadOnly')) {
-                    const editor = this.editor;
                     // Note: You use a more specialized createEditableElement() method here.
+                    const editMode = false;
                     const tryContentWrapper = viewWriter.createRawElement('div', { class: 'snippet-try-text' }, function (domElement) {
                         domElement.innerHTML = editor.config.get('digisnippet.tryText') || "Try it yourself";
                     });
@@ -82,7 +85,7 @@ export default class DigiSnippetEditing extends Plugin {
                         };
                         const rawHtmlApi = {
                             openInEditor() {
-                                renderContent({ domElement: domContentWrapper, editor, state, props });
+                                renderContent({ domElement: domContentWrapper, editor, state, props, editMode });
                                 view.change(writer => {
                                     writer.setAttribute('disabled', 'true', tryBtnContentWrapper);
                                 });
@@ -90,11 +93,11 @@ export default class DigiSnippetEditing extends Plugin {
                                 let code = "";
                                 for (let child of _modelElement.getChildren()) {
                                     for (let content of child.getChildren()) {
-                                        if (content.name === "softBreak") {
+                                        if (content?.name === "softBreak") {
                                             code += "\n";
                                         }
                                         else {
-                                            if (content.data) {
+                                            if (content?.data) {
                                                 code += content.data;
                                             }
                                         }
@@ -114,7 +117,7 @@ export default class DigiSnippetEditing extends Plugin {
                                 rawHtmlApi.openInEditor();
                             }
                         };
-                        renderContent({ editor, domElement, state, props });
+                        renderContent({ editor, domElement, state, props, editMode });
                         viewWriter.setCustomProperty('rawHtmlApi', rawHtmlApi, viewContainer);
                         viewWriter.setCustomProperty('rawHtml', true, viewContainer);
                     });
@@ -129,8 +132,50 @@ export default class DigiSnippetEditing extends Plugin {
                 }
                 else {
                     // Note: You use a more specialized createEditableElement() method here.
-                    const div = viewWriter.createEditableElement('div', { class: 'snippet-box' });
-                    return toWidget(div, viewWriter);
+                    // const div = viewWriter.createEditableElement('div', { class: 'snippet-box' });
+                    const viewContainer = viewWriter.createContainerElement('section', {
+                        class: 'snippet-box flex-column-reverse create-mode',
+                        label: 'snippet widget',
+                    });
+                    const div = viewWriter.createRawElement('div', {
+                        class: 'snippet-delete-section'
+                    }, function (domElement) {
+                        domContentWrapper = domElement;
+                        const editMode = true;
+                        state = {
+                            getRawHtmlValue: () => modelElement
+                        };
+                        const rawHtmlApi = {
+                            deleteSnippet() {
+                                renderContent({ editor, domElement, state, props, editMode });
+                                try {
+                                    const child_node = viewContainer.getChild(0);
+                                    viewWriter.remove(child_node);
+                                    viewWriter.remove(div);
+                                    const _modelElement = state.getRawHtmlValue();
+                                    viewContainer._setAttribute('class', 'snippet-box d-none');
+                                    _modelElement._removeChildren(0, 1);
+                                    _modelElement._remove();
+                                }
+                                catch (error) {
+                                    console.log(error);
+                                }
+                                // editor.focus();
+                            },
+                        };
+                        props = {
+                            onOpenClick() { },
+                            onDeleteClick() {
+                                rawHtmlApi.deleteSnippet();
+                            }
+                        };
+                        renderContent({ editor, domElement, state, props, editMode });
+                    });
+                    viewWriter.insert(viewWriter.createPositionAt(viewContainer, 0), div);
+                    return toWidget(viewContainer, viewWriter, {
+                        label: t('HTML snippet'),
+                        hasSelectionHandle: true
+                    });
                 }
             }
         });
@@ -157,22 +202,45 @@ export default class DigiSnippetEditing extends Plugin {
                 return toWidgetEditable(div, viewWriter);
             }
         });
-        function renderContent({ editor, domElement, state, props }) {
+        function renderContent({ editor, domElement, state, props, editMode }) {
             domElement.textContent = '';
             const domDocument = domElement.ownerDocument;
-            domElement.prepend(createDomButtonsWrapper({ editor, domDocument, state, props }));
+            domElement.prepend(createDomButtonsWrapper({ editor, domDocument, state, props, editMode }));
         }
-        function createDomButtonsWrapper({ editor, domDocument, state, props }) {
+        function createDomButtonsWrapper({ editor, domDocument, state, props, editMode }) {
             const domButtonsWrapper = createElement(domDocument, 'div', {
-                class: 'raw-html-embed__buttons-wrapper'
+                class: editMode ? 'raw-html-embed_delete_buttons-wrapper' : 'raw-html-embed__buttons-wrapper'
             });
-            const button_hide = editor.config.get('digisnippet.button.hide');
-            if (!button_hide) {
-                const saveButtonView = createUIButton(editor, 'save', props.onOpenClick);
-                domButtonsWrapper.append(saveButtonView.element);
-                widgetButtonViewReferences.add(saveButtonView);
+            if (!editMode) {
+                const button_hide = editor.config.get('digisnippet.button.hide');
+                if (!button_hide) {
+                    const saveButtonView = createUIButton(editor, 'save', props.onOpenClick);
+                    domButtonsWrapper.append(saveButtonView.element);
+                    widgetButtonViewReferences.add(saveButtonView);
+                }
+            }
+            else {
+                const deleteButton = createDeleteButton(editor, props?.onDeleteClick);
+                domButtonsWrapper.append(deleteButton.element);
+                widgetButtonViewReferences.add(deleteButton);
             }
             return domButtonsWrapper;
+        }
+        function createDeleteButton(editor, onClick) {
+            const { t } = editor.locale;
+            const buttonView = new ButtonView(editor.locale);
+            buttonView.set({
+                class: `raw-html-embed__delete-button`,
+                label: t('Delete'),
+                icon: snippetdelete,
+                tooltip: true,
+                tooltipPosition: editor.locale.uiLanguageDirection === 'rtl' ? 'e' : 'w'
+            });
+            buttonView.render();
+            if (onClick) {
+                buttonView.on('execute', onClick);
+            }
+            return buttonView;
         }
         function createUIButton(editor, type, onClick) {
             const { t } = editor.locale;

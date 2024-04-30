@@ -92,7 +92,7 @@ ClassicEditor
 			]
 		},
 		digisnippet: {
-			isReadOnly: true,
+			// isReadOnly: true,
 			openInEditor: (val: any) => console.log(val),
 			button: {
 			  text: 'Open In New Tab',
@@ -102,7 +102,7 @@ ClassicEditor
 	  }
 	})
 	.then(editor => {
-		editor.enableReadOnlyMode('sample-test');
+		// editor.enableReadOnlyMode('sample-test');
 		window.editor = editor;
 		CKEditorInspector.attach(editor);
 		window.console.log('CKEditor 5 is ready.', editor);
