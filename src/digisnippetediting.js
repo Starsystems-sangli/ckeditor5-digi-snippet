@@ -155,7 +155,10 @@ export default class DigiSnippetEditing extends Plugin {
                                     const _modelElement = state.getRawHtmlValue();
                                     viewContainer._setAttribute('class', 'snippet-box d-none');
                                     _modelElement._removeChildren(0, 1);
-                                    _modelElement._remove();
+                                    // _modelElement._remove();
+                                    editor.model.change(writer => {
+                                        writer.remove(_modelElement);
+                                    });
                                 }
                                 catch (error) {
                                     console.log(error);

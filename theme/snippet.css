@@ -81,22 +81,27 @@
     color: #CA162F !important;
     font-weight: bold !important;
 }
+
 .snippet-btn svg {
     font-size: 5px !important;
     margin-right: 4px !important;
 }
+
 .snippet-delete-section {
     background-color: white !important;
 }
+
 .raw-html-embed_delete_buttons-wrapper {
     text-align: end;
     position: absolute;
     right: 10px;
 }
+
 .raw-html-embed__delete-button:hover {
     background-color: transparent !important;
     cursor: pointer;
 }
+
 .snippet-box.d-none {
     display: none !important;
 }
